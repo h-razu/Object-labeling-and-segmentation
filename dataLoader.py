@@ -1,56 +1,63 @@
-import os
+import shutil
 import json
-import numpy
-import cv2
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+import prettyprinter as pp
+from tqdm.auto import tqdm
+
+
 
 class DataLoader:
-    def __init__(self, json_path, images_path, output_path, categories):
-        self.json_path = json_path
-        self.images_path = images_path
-        self.output_path = output_path
-        self.categories = {category: idx for idx, category in enumerate(categories)}
-        
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+    def __init__(self, label_path, images_path, object_classes_path):
+        self.label_path = Path(label_path)
+        self.images_path = Path(images_path)
+        self.object_classess_path = Path(object_classes_path)
 
 
-    def make_annotaion(self):
-        
-        counter = 0
-        #loading the json files
-        with open(self.json_path, 'r') as file:
-            data = json.load(file)
-            
-        #create annotation text file for each image
-        for image_data in data:
-            image_name = image_data['name']
-            image_path = os.path.join(self.images_path, image_name)
-            image = cv2.imread(image_path)
-            
-            if image is None:
-                print(f"Warning: Image {image_name} not found.")
-                counter = counter +1
-                continue
-            
-            height, width, _ = image.shape
-            
-            # Prepare the annotation file
-            annotation_file = os.path.join(self.output_path, f'{os.path.splitext(image_name)[0]}.txt')
-            with open(annotation_file, 'w') as ann_file:
-                for label in image_data['labels']:
-                    category = label['category']
-                    if category not in self.categories:
-                        continue
-                    
-                    category_id = self.categories[category]
-                    box = label['box2d']
-                    
-                    # Normalize the bounding box coordinates
-                    x_center = (box['x1'] + box['x2']) / 2 / width
-                    y_center = (box['y1'] + box['y2']) / 2 / height
-                    w = (box['x2'] - box['x1']) / width
-                    h = (box['y2'] - box['y1']) / height
-                    
-                    # Write the annotation in YOLOv8 format
-                    ann_file.write(f"{category_id} {x_center} {y_center} {w} {h}\n")
-        print(counter)
+    def make_validation_set(self):
+        #make pair of (train_image, train_label)
+        train_imgages = sorted(list(self.images_path.glob('*')))
+        train_labels = sorted(list(self.label_path.glob('*')))
+        train_data = list(zip(train_imgages, train_labels))
+
+        #split the train dataset into train and val set
+        print("Spliting the train dataset into train and val set")
+        train, val = train_test_split(train_data,test_size=0.2,shuffle=True)
+        print(f'Train data size: {len(train)}')
+        print(f'Val data size: {len(val)}')
+        print()
+
+        #make new data directory for processed data
+        self.train_path = Path('dataset/modified/train').resolve()
+        self.train_path.mkdir(exist_ok=True)
+        self.valid_path = Path('dataset/modified/valid').resolve()
+        self.valid_path.mkdir(exist_ok=True)
+
+        #copy train image to processed data directory
+        pp.pprint('Copying train image to processed data directory')
+        for t_image, t_label in tqdm(train):
+            image_path = self.train_path / t_image.name
+            label_path = self.train_path / t_label.name
+            shutil.copy(t_image,image_path)
+            shutil.copy(t_label,label_path)
+
+        #copy val image to processed data directory
+        pp.pprint('Copying validate image to processed data directory')
+        for v_image, v_label in tqdm(val):
+            image_path = self.valid_path / v_image.name
+            label_path = self.valid_path / v_label.name
+            shutil.copy(v_image,image_path)
+            shutil.copy(v_label,label_path)
+
+
+
+    def make_yaml_file(self):
+        with open(self.object_classess_path,'r') as f:
+            classes = json.load(f)
+
+        yaml_file = 'names:\n'
+        yaml_file += '\n'.join(f'- {c}' for c in classes)
+        yaml_file += f'\nnc: {len(classes)}'
+        yaml_file += f'\ntrain: {str(self.train_path)}\nval: {str(self.valid_path)}'
+        with open('dataset/data.yaml','w') as f:
+            f.write(yaml_file)

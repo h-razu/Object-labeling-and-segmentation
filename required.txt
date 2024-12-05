@@ -6,3 +6,6 @@ conda install -c conda-forge ipykernel
 conda install pandas
 conda install ultralytics
 conda install openCV
+conda install scikit-learn
+conda install prettyprinter
+conda install yaml
