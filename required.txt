@@ -1,0 +1,8 @@
+#install ipykernel
+
+conda install -c conda-forge ipykernel
+
+#install library
+conda install pandas
+conda install ultralytics
+conda install openCV
