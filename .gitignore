@@ -1,2 +1,6 @@
 dataset
 __pycache__
+model_output
+runs
+bash.*
+*.pt
