@@ -49,8 +49,8 @@ class ModelYOLO:
     def remove_folder(self, folder_name):
 
         directory = 'runs/detect'
-        if folder_name is "val": pattern = r"^val\d*$" 
-        if folder_name is "predict": pattern = r"^predict\d*$" 
+        if folder_name == "val": pattern = r"^val\d*$" 
+        if folder_name == "predict": pattern = r"^predict\d*$" 
 
         # List folders matching the pattern
         folders = [f for f in os.listdir(directory) if re.match(pattern, f) and os.path.isdir(f"{directory}/{f}")]
@@ -67,12 +67,14 @@ class ModelYOLO:
                 print(f"Folder '{folder_path}' does not exist!")
 
     #prediction using randomly selected 20 pictures
-    def prediction(self, test_path):
-        self.remove_prediction_folder("predict")
+    def prediction(self, model_path, test_path):
+        self.remove_folder("predict")
         test_imgages = sorted(list(test_path.glob('*.png')))
         test_data = list(test_imgages)
         print(len(test_data))
 
+        model = YOLO(model_path)
+        
         preds = self.model.predict(
                 [str(test_data[idx]) for idx in np.random.randint(0, len(test_data), (20,))],
                 save=True
@@ -111,34 +113,6 @@ class ModelYOLO:
             save_dir=save_dir  
         )
 
-        # Print evaluation results
-        # print("Evaluation Results:")
-        # print(f"Precision: {results.preds['precision']}")
-        # print(f"Recall: {results.preds['recall']}")
-        # print(f"mAP@0.5: {results.preds['mAP50']}")
-        # print(f"mAP@0.5:0.95: {results.preds['mAP50_95']}")
-        print("KKKK")
         print(metrics)
-        print("KKKK")
 
-        # # Average Precision at IoU=0.5
-        # print(f"AP (Average Precision at IoU=0.5): {metrics.boxmaps['AP50']}")
-
-        # # mAP at IoU from 0.5 to 0.95 (mean of all IoU thresholds)
-        # print(f"mAP (mean Average Precision at IoU=0.5:0.95): {metrics.boxmaps['mAP_0.5:0.95']}")
-
-        # # Precision: Percentage of correct predictions among all positive predictions
-        # print(f"Precision: {metrics.preds['precision']}")
-
-        # # Recall: Percentage of correct predictions among all ground-truth objects
-        # print(f"Recall: {metrics.preds['recall']}")
-
-        # # F1-Score: Harmonic mean of precision and recall
-        # print(f"F1-Score: {metrics.preds['f1']}")
-
-        # # Confusion matrix (matrix showing true positive, false positive, false negative, etc.)
-        # print(f"Confusion Matrix: {metrics.confusion_matrix}")
-
-        # # Per-class APs (Average Precision for each class)
-        # for class_name, ap in metrics.boxmaps['AP_class'].items():
-        #     print(f"AP for class {class_name}: {ap}")
+        
