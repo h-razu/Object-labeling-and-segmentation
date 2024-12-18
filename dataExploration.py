@@ -1,19 +1,18 @@
 import matplotlib.pyplot as plt
 from pathlib import Path
 import prettyprinter as pp
-import cv2
 import os
+import cv2
 
 class DataExploration:    
-    def __init__(self, image_path, label_path):
+    def __init__(self, image_path):
         self.image_path = Path(image_path)
-        self.label_path = Path(label_path)
 
     def visualize_image(self, num_of_image=3):
         plt.figure(figsize=(30, 20))
 
         print("Some Sample Images: ")
-        img = sorted(list(self.image_path.glob('*')))
+        img = sorted(list(self.image_path.glob('*.png')))
         for i, img_path in enumerate(img[:num_of_image]):
             img = cv2.imread(str(img_path))
             if img is None:
@@ -28,5 +27,4 @@ class DataExploration:
 
 
     def class_distribution(self):
-        # labels = sorted(list(self.label_path.glob('*')))
         print()

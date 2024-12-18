@@ -1,3 +1,4 @@
+import pandas as pd
 from ultralytics import YOLO
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -5,27 +6,72 @@ import os
 import numpy as np
 import re
 import shutil
+from pathlib import Path
 
-class ModelYOLO:
-    def __init__(self):
+class YOLOv8Detection:
+    def __init__(self, data_path, device='cpu', img_size=640):
         self.model = YOLO('yolov8n.pt')
+        self.data_path = data_path
+        self.device = device
+        self.img_size = img_size
 
 
-    def yolo_training(self, data, epochs, batch_size, image_size, project_name, exp_name, device):
+    def train(self, epochs=7, batch_size=16, learning_rate=0.001):
         
         self.model.train(
-            data=data,
+            data=self.data_path,
             epochs=epochs,
             patience=3,
             batch=batch_size,
-            imgsz=image_size,
+            imgsz=self.img_size,
+            lr0=learning_rate,
             mixup=0.1,
-            project=project_name,
-            name=exp_name,
-            device=device
+            project='model_output/YOLO_detection',
+            name="Object Labeling",
+            device=self.device
         )
 
-    def result_visualization(self, base_dir):
+
+    def evaluate(self, model_path):
+        self.remove_folder("val")
+        val_model = YOLO(model_path)
+        metrics = val_model.val(data=self.data_path)
+        
+        # Evaluation metrics
+        Precision = round(metrics.results_dict['metrics/precision(B)'],3)
+        Recall= round(metrics.results_dict['metrics/recall(B)'],3)
+        mAP_50 = round(metrics.results_dict['metrics/mAP50(B)'],3)
+        mAP_50_95 = round(metrics.results_dict['metrics/mAP50-95(B)'],3)
+
+        metrics_data = {
+            'Metric': ['Precision', 'Recall', 'mAP@50', 'mAP@50-95'],
+            'Value': [Precision, Recall, mAP_50, mAP_50_95]
+        }
+    
+        df = pd.DataFrame(metrics_data)
+        print("Evaluation Metrics for Object Detection:")
+        print(df)
+
+
+
+    #prediction using randomly selected 20 pictures
+    def prediction(self, model_path, test_path):
+        self.remove_folder("predict")
+        test_imgages = sorted(list(test_path.glob('*.png')))
+        test_data = list(test_imgages)
+        print(len(test_data))
+
+        model = YOLO(model_path)
+        
+        preds = model.predict(
+                [str(test_data[idx]) for idx in np.random.randint(0, len(test_data), (20,))],
+                save=True
+                )
+
+        print(preds)
+
+    
+    def result_visualization(self, base_dir="runs/detect"):
         path = os.path.join(base_dir, "val", "F1_curve.png")
         plt.figure(figsize=(10,20))
         plt.imshow(Image.open(path))
@@ -66,23 +112,10 @@ class ModelYOLO:
             else:
                 print(f"Folder '{folder_path}' does not exist!")
 
-    #prediction using randomly selected 20 pictures
-    def prediction(self, model_path, test_path):
-        self.remove_folder("predict")
-        test_imgages = sorted(list(test_path.glob('*.png')))
-        test_data = list(test_imgages)
-        print(len(test_data))
 
-        model = YOLO(model_path)
-        
-        preds = self.model.predict(
-                [str(test_data[idx]) for idx in np.random.randint(0, len(test_data), (20,))],
-                save=True
-                )
+    def plot_predicted_images(self, num_of_images=5):
+        images_path = Path("runs/detect/predict")
 
-        print(preds)
-
-    def plot_predicted_images(self, images_path, num_of_images=8):
         images = list(images_path.glob('*')) 
 
         num_of_images = min(len(images), num_of_images)
@@ -101,18 +134,5 @@ class ModelYOLO:
 
         plt.tight_layout()
         plt.show()
-
-
-    def evaluation_on_validate(self,model_path, val_data_path, save_dir='runs/val_evaluation'):
-        self.remove_folder("val")
-        model = YOLO(model_path)
-    
-        # Evaluate the model using the validation dataset
-        metrics = model.val(
-            data=val_data_path,
-            save_dir=save_dir  
-        )
-
-        print(metrics)
 
         

@@ -19,6 +19,7 @@ class DataLoader:
         train_imgages = sorted(list(self.images_path.glob('*.png')))
         train_labels = sorted(list(self.label_path.glob('*.txt')))
         train_data = list(zip(train_imgages, train_labels))
+        train_data = train_data[:2500]
 
         #split the train dataset into train and val set
         print("Spliting the train dataset into train and val set")
@@ -28,28 +29,24 @@ class DataLoader:
         print()
 
         #make new data directory for processed data
-        self.train_path_img = Path('dataset/modified/train/images').resolve()
-        self.train_path_img.mkdir(exist_ok=True)
-        self.train_path_label = Path('dataset/modified/train/labels').resolve()
-        self.train_path_label.mkdir(exist_ok=True)
-        self.valid_path_img = Path('dataset/modified/valid/images').resolve()
-        self.valid_path_img.mkdir(exist_ok=True)
-        self.valid_path_label = Path('dataset/modified/valid/labels').resolve()
-        self.valid_path_label.mkdir(exist_ok=True)
+        self.train_path = Path('dataset/modified/train').resolve()
+        self.train_path.mkdir(exist_ok=True)
+        self.valid_path = Path('dataset/modified/valid').resolve()
+        self.valid_path.mkdir(exist_ok=True)
 
         #copy train image to processed data directory
         pp.pprint('Copying train image to processed data directory')
         for t_image, t_label in tqdm(train):
-            image_path = self.train_path_img / t_image.name
-            label_path = self.train_path_label / t_label.name
+            image_path = self.train_path / t_image.name
+            label_path = self.train_path / t_label.name
             shutil.copy(t_image,image_path)
             shutil.copy(t_label,label_path)
 
         #copy val image to processed data directory
         pp.pprint('Copying validate image to processed data directory')
         for v_image, v_label in tqdm(val):
-            image_path = self.valid_path_img / v_image.name
-            label_path = self.valid_path_label / v_label.name
+            image_path = self.valid_path / v_image.name
+            label_path = self.valid_path / v_label.name
             shutil.copy(v_image,image_path)
             shutil.copy(v_label,label_path)
 
@@ -62,6 +59,6 @@ class DataLoader:
         yaml_file = 'names:\n'
         yaml_file += '\n'.join(f'- {c}' for c in classes)
         yaml_file += f'\nnc: {len(classes)}'
-        yaml_file += f'\ntrain: {str(self.train_path_img)}\nval: {str(self.valid_path_img)}'
+        yaml_file += f'\ntrain: {str(self.train_path)}\nval: {str(self.valid_path)}'
         with open('dataset/data.yaml','w') as f:
             f.write(yaml_file)
