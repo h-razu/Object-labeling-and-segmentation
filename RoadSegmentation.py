@@ -45,7 +45,7 @@ class RoadSegmentation:
         masks = np.array(mask_list)
         
         # Split data into train and test sets
-        return train_test_split(images, masks, test_size=0.2, random_state=42)
+        return train_test_split(images, masks, test_size=0.3, random_state=42)
 
     def create_deeplabv3(self, input_shape=(512, 512, 3), num_classes=1):
         # Base model (ResNet50) with DeepLabv3 adjustments
@@ -95,5 +95,3 @@ class RoadSegmentation:
         plt.tight_layout()
         plt.show()
 
-
-    
